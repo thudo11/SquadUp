@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SquadUp — AI Recruitment Intelligence for Student Clubs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --amber-deep: #C17A1A;
+    --amber-mid: #D4922A;
+    --amber-light: #F0B84A;
+    --amber-pale: #FDE9B8;
+    --cream: #FDF6EC;
+    --cream-dark: #F5EAD5;
+    --navy: #1C1A2E;
+    --navy-mid: #2E2A4A;
+    --text-dark: #1C1A2E;
+    --text-mid: #4A4260;
+    --text-light: #7B7299;
+    --white: #FFFFFF;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text-dark);
+    overflow-x: hidden;
+  }
+
+  /* ─── SCROLL PROGRESS ─── */
+  .scroll-progress {
+    position: fixed; top: 0; left: 0; z-index: 300;
+    height: 3px; width: 0%;
+    background: linear-gradient(90deg, var(--amber-light), var(--amber-deep));
+    transition: width 0.08s linear;
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* ─── CURSOR GLOW ─── */
+  .cursor-glow {
+    position: fixed; width: 500px; height: 500px;
+    border-radius: 50%; pointer-events: none; z-index: 0;
+    background: radial-gradient(circle, rgba(240,184,74,0.07) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    transition: opacity 0.4s;
+    will-change: transform;
+  }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed; bottom: 32px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--navy-mid); color: white;
+    padding: 14px 24px; border-radius: 10px;
+    font-size: 14px; font-weight: 500;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+    opacity: 0; z-index: 500;
+    border: 1px solid rgba(240,184,74,0.25);
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast-icon { font-size: 16px; }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 60px;
+    background: rgba(253,246,236,0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(193,122,26,0.12);
+    transition: box-shadow 0.3s;
+  }
+  nav.scrolled {
+    box-shadow: 0 4px 24px rgba(28,26,46,0.08);
+  }
+  .nav-logo {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800; font-size: 22px;
+    color: var(--amber-deep);
+    letter-spacing: -0.5px;
+  }
+  .nav-logo span { color: var(--navy); }
+  .nav-links {
+    display: flex; gap: 36px; list-style: none;
+  }
+  .nav-links a {
+    font-size: 14px; font-weight: 500; color: var(--text-mid);
+    text-decoration: none; transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--amber-deep); }
+  .nav-cta {
+    background: var(--navy); color: var(--white);
+    border: none; padding: 11px 24px; border-radius: 6px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 14px;
+    cursor: pointer; transition: background 0.2s, transform 0.15s;
+    text-decoration: none;
+  }
+  .nav-cta:hover { background: var(--navy-mid); transform: translateY(-1px); }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 120px 60px 80px;
+    gap: 60px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -200px; right: -200px;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(240,184,74,0.18) 0%, transparent 70%);
+    pointer-events: none;
+    animation: heroGlow 6s ease-in-out infinite alternate;
+  }
+  @keyframes heroGlow {
+    from { transform: scale(1); opacity: 1; }
+    to { transform: scale(1.1); opacity: 0.7; }
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -100px; left: -100px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(28,26,46,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--amber-pale); border: 1px solid rgba(193,122,26,0.25);
+    color: var(--amber-deep); font-size: 12px; font-weight: 500;
+    padding: 6px 14px; border-radius: 100px; margin-bottom: 28px;
+    animation: fadeUp 0.6s ease both;
+  }
+  .hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--amber-mid); border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+
+  .hero-headline {
+    font-family: 'Nunito', sans-serif;
+    font-size: clamp(42px, 5vw, 72px);
+    font-weight: 800; line-height: 1.0;
+    letter-spacing: -2px;
+    color: var(--navy);
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  .hero-headline em {
+    font-style: normal;
+    color: var(--amber-deep);
+    position: relative;
+  }
+  .hero-headline em::after {
+    content: '';
+    position: absolute;
+    bottom: 2px; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--amber-light), var(--amber-mid));
+    border-radius: 2px;
+    transform: scaleX(0);
+    transform-origin: left;
+    animation: underlineGrow 0.8s 0.8s ease forwards;
+  }
+  @keyframes underlineGrow { to { transform: scaleX(1); } }
+
+  .hero-sub {
+    margin-top: 24px; font-size: 17px; line-height: 1.7;
+    color: var(--text-mid); max-width: 520px;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .hero-actions {
+    display: flex; align-items: center; gap: 16px; margin-top: 36px;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--amber-mid), var(--amber-deep));
+    color: var(--white); border: none;
+    padding: 15px 32px; border-radius: 8px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 15px;
+    cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(193,122,26,0.35);
+    text-decoration: none;
+    overflow: hidden; position: relative;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(193,122,26,0.45); }
+
+  .btn-ghost {
+    color: var(--text-mid); font-size: 14px; font-weight: 500;
+    text-decoration: none; display: flex; align-items: center; gap: 6px;
+    transition: color 0.2s;
+  }
+  .btn-ghost:hover { color: var(--amber-deep); }
+  .btn-ghost svg { transition: transform 0.2s; }
+  .btn-ghost:hover svg { transform: translateX(3px); }
+
+  .hero-stats {
+    display: flex; gap: 36px; margin-top: 48px;
+    padding-top: 36px;
+    border-top: 1px solid rgba(193,122,26,0.15);
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+  .stat { }
+  .stat-num {
+    font-family: 'Nunito', sans-serif;
+    font-size: 28px; font-weight: 800; color: var(--navy);
+    line-height: 1;
+    display: flex; align-items: baseline; gap: 2px;
+  }
+  .stat-suffix { font-size: 18px; }
+  .stat-label { font-size: 12px; color: var(--text-light); margin-top: 5px; }
+  .stat-divider {
+    width: 1px; background: rgba(193,122,26,0.15); align-self: stretch;
+  }
+
+  /* ─── HERO VISUAL ─── */
+  .hero-visual {
+    position: relative;
+    animation: fadeIn 0.8s 0.3s ease both;
+    perspective: 1200px;
+  }
+  .hero-visual-inner {
+    transition: transform 0.15s ease-out;
+    transform-style: preserve-3d;
+  }
+
+  .card-main {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(28,26,46,0.12);
+    position: relative;
+    z-index: 2;
+  }
+
+  .card-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+  }
+  .card-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--amber-light), var(--amber-deep));
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 14px; font-family: 'Nunito', sans-serif;
+  }
+  .card-club-name { font-weight: 700; font-size: 15px; color: var(--navy); }
+  .card-role { font-size: 12px; color: var(--text-light); }
+  .card-badge {
+    margin-left: auto; background: #EDFAF3;
+    color: #1E7A4B; font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: 100px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .card-badge::before {
+    content: '';
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #1E7A4B;
+    animation: pulse 2s infinite;
+  }
+
+  .applicant-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; border-radius: 10px;
+    background: var(--cream); margin-bottom: 8px;
+    transition: background 0.2s, transform 0.2s;
+    cursor: default;
+  }
+  .applicant-row:hover { background: var(--amber-pale); transform: translateX(4px); }
+  .applicant-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; font-family: 'Nunito', sans-serif;
+    flex-shrink: 0;
+  }
+  .applicant-info { flex: 1; }
+  .applicant-name { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .applicant-tags { display: flex; gap: 6px; margin-top: 3px; }
+  .tag {
+    font-size: 10px; padding: 2px 7px; border-radius: 4px;
+    font-weight: 500;
+  }
+  .tag-commitment { background: #FEF3E2; color: #9A5A00; }
+  .tag-culture { background: #E8F0FE; color: #1A5FC8; }
+
+  .score-bar {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  }
+  .score-value {
+    font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 800; color: var(--navy);
+  }
+  .score-label { font-size: 10px; color: var(--text-light); }
+
+  .fit-meter {
+    height: 4px; border-radius: 2px; background: #EDE8F8; overflow: hidden;
+    width: 60px;
+  }
+  .fit-fill { height: 100%; border-radius: 2px; transition: width 1.2s ease; }
+
+  .card-insight {
+    margin-top: 16px; padding: 14px; border-radius: 10px;
+    background: linear-gradient(135deg, #1C1A2E, #2E2A4A);
+    color: white; position: relative; overflow: hidden;
+  }
+  .card-insight::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at top right, rgba(240,184,74,0.12), transparent 60%);
+  }
+  .insight-label { font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; position: relative; }
+  .insight-text { font-size: 13px; line-height: 1.5; color: rgba(255,255,255,0.9); position: relative; }
+  .insight-highlight { color: var(--amber-light); font-weight: 600; }
+
+  .card-floating {
+    position: absolute;
+    background: var(--white);
+    border-radius: 12px;
+    padding: 14px 18px;
+    box-shadow: 0 12px 40px rgba(28,26,46,0.15);
+    font-size: 13px;
+  }
+  .card-float-1 {
+    top: -60px; right: -20px;
+    animation: float1 4s ease-in-out infinite;
+    z-index: 10;
+    box-shadow: 0 20px 60px rgba(28,26,46,0.25);
+    transform: scale(1.05);
+  }
+  .card-float-2 {
+    bottom: 40px; left: -130px;
+    animation: float2 5s ease-in-out infinite;
+  }
+  @keyframes float1 {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes float2 {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(6px); }
+  }
+  .float-label { font-size: 10px; color: var(--text-light); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.8px; }
+  .float-value { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 20px; color: var(--navy); }
+  .float-sub { font-size: 11px; color: var(--text-light); }
+
+  /* ─── MARQUEE ─── */
+  .marquee-section {
+    padding: 18px 0;
+    background: var(--navy);
+    overflow: hidden;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    position: relative;
+  }
+  .marquee-section::before,
+  .marquee-section::after {
+    content: '';
+    position: absolute; top: 0; bottom: 0; width: 80px; z-index: 2;
+    pointer-events: none;
+  }
+  .marquee-section::before {
+    left: 0;
+    background: linear-gradient(to right, var(--navy), transparent);
+  }
+  .marquee-section::after {
+    right: 0;
+    background: linear-gradient(to left, var(--navy), transparent);
+  }
+  .marquee-track {
+    display: flex; gap: 0;
+    animation: marqueeScroll 35s linear infinite;
+    width: max-content;
+  }
+  .marquee-section:hover .marquee-track { animation-play-state: paused; }
+  .marquee-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 36px; white-space: nowrap;
+    font-size: 13px; font-weight: 500;
+    color: rgba(255,255,255,0.38);
+    border-right: 1px solid rgba(255,255,255,0.07);
+    transition: color 0.2s;
+  }
+  .marquee-item:hover { color: rgba(255,255,255,0.7); }
+  .marquee-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--amber-mid); opacity: 0.5; flex-shrink: 0;
+  }
+  @keyframes marqueeScroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* ─── PROBLEM ─── */
+  .section {
+    padding: 100px 60px;
+  }
+  .section-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--amber-deep);
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 800; letter-spacing: -1.5px;
+    color: var(--navy); line-height: 1.05;
+  }
+
+  .problem-section {
+    background: var(--navy);
+    color: white;
+    padding: 100px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .problem-section::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 80% 50%, rgba(240,184,74,0.08) 0%, transparent 60%);
+  }
+  .problem-section .section-label { color: var(--amber-light); }
+  .problem-section .section-title { color: white; }
+
+  .problem-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px;
+    margin-top: 60px;
+  }
+  .problem-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 32px 28px;
+    transition: background 0.3s, transform 0.3s;
+    position: relative; overflow: hidden;
+    cursor: default;
+  }
+  .problem-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--amber-mid), transparent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s;
+  }
+  .problem-card:hover { background: rgba(255,255,255,0.07); transform: translateY(-4px); }
+  .problem-card:hover::before { transform: scaleX(1); }
+  .problem-icon {
+    font-size: 28px; margin-bottom: 16px; display: block;
+    filter: grayscale(0.3);
+    transition: filter 0.3s, transform 0.3s;
+  }
+  .problem-card:hover .problem-icon { filter: grayscale(0); transform: scale(1.1); }
+  .problem-num {
+    font-family: 'Nunito', sans-serif;
+    font-size: 48px; font-weight: 800;
+    color: rgba(240,184,74,0.2);
+    line-height: 1; margin-bottom: 16px;
+    transition: color 0.3s;
+  }
+  .problem-card:hover .problem-num { color: rgba(240,184,74,0.35); }
+  .problem-title { font-size: 15px; font-weight: 600; color: white; margin-bottom: 10px; }
+  .problem-desc { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.7; }
+
+  /* ─── HOW IT WORKS ─── */
+  .steps-section {
+    padding: 100px 60px;
+    background: var(--cream-dark);
+  }
+  .steps-container {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 0; margin-top: 60px; position: relative;
+  }
+  .steps-container::before {
+    content: '';
+    position: absolute;
+    top: 32px; left: 80px; right: 80px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--amber-light), var(--amber-mid), var(--amber-light), transparent);
+    z-index: 0;
+  }
+  .step {
+    text-align: center; padding: 0 16px; position: relative; z-index: 1;
+  }
+  .step-circle {
+    width: 64px; height: 64px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 18px;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .step-circle.active {
+    background: linear-gradient(135deg, var(--amber-mid), var(--amber-deep));
+    color: white;
+    box-shadow: 0 8px 24px rgba(193,122,26,0.4);
+  }
+  .step-circle.inactive {
+    background: white;
+    color: var(--text-light);
+    border: 2px solid var(--amber-pale);
+  }
+  .step:hover .step-circle { transform: scale(1.12); }
+  .step:hover .step-circle.active { box-shadow: 0 12px 32px rgba(193,122,26,0.55); }
+  .step-name {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700; font-size: 13px; color: var(--navy);
+    margin-bottom: 8px; letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .step-desc { font-size: 12px; color: var(--text-mid); line-height: 1.6; }
+
+  /* ─── COMPETITIVE ─── */
+  .competitive-section {
+    background: var(--cream-dark); padding: 100px 60px;
+  }
+  .comparison-table {
+    margin-top: 48px; border-radius: 16px; overflow: hidden;
+    border: 1px solid rgba(193,122,26,0.15);
+    box-shadow: 0 8px 32px rgba(28,26,46,0.06);
+  }
+  .ct-header {
+    display: grid;
+    grid-template-columns: 220px 1fr 1fr 1fr;
+    background: var(--navy); color: white;
+    padding: 16px 28px; gap: 12px;
+  }
+  .ct-header-cell {
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .ct-header-cell.highlight { color: var(--amber-light); }
+  .ct-row {
+    display: grid;
+    grid-template-columns: 220px 1fr 1fr 1fr;
+    padding: 16px 28px; gap: 12px;
+    background: white; border-bottom: 1px solid rgba(193,122,26,0.08);
+    align-items: center; transition: background 0.2s;
+  }
+  .ct-row:hover { background: var(--cream); }
+  .ct-row:last-child { border-bottom: none; }
+  .ct-feature { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .ct-cell {
+    font-size: 13px; color: var(--text-mid);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ct-cell.positive { color: #1E7A4B; font-weight: 600; }
+  .ct-cell.negative { color: #C0392B; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot.green { background: #1E7A4B; }
+  .dot.red { background: #C0392B; }
+  .dot.grey { background: #AAA; }
+
+  /* ─── CTA ─── */
+  .cta-section {
+    padding: 120px 60px;
+    text-align: center;
+    background: var(--navy);
+    position: relative; overflow: hidden;
+  }
+  .cta-section::before {
+    content: '';
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 800px; height: 800px;
+    background: radial-gradient(circle, rgba(240,184,74,0.1) 0%, transparent 65%);
+    pointer-events: none;
+    animation: heroGlow 8s ease-in-out infinite alternate;
+  }
+  .cta-eyebrow {
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--amber-light); font-weight: 600; margin-bottom: 20px;
+    position: relative; z-index: 1;
+  }
+  .cta-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 800; letter-spacing: -2px;
+    color: white; line-height: 1.0;
+    margin-bottom: 24px;
+    position: relative; z-index: 1;
+  }
+  .cta-title span { color: var(--amber-light); }
+  .cta-body {
+    font-size: 17px; color: rgba(255,255,255,0.6);
+    max-width: 480px; margin: 0 auto 36px;
+    line-height: 1.7; position: relative; z-index: 1;
+  }
+
+  /* Email form */
+  .cta-form {
+    display: flex; gap: 10px;
+    max-width: 460px; margin: 0 auto 12px;
+    position: relative; z-index: 1;
+  }
+  .cta-input {
+    flex: 1; padding: 16px 20px; border-radius: 8px;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.07); color: white;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px;
+    outline: none;
+    transition: border-color 0.25s, background 0.25s;
+  }
+  .cta-input::placeholder { color: rgba(255,255,255,0.32); }
+  .cta-input:focus {
+    border-color: var(--amber-mid);
+    background: rgba(255,255,255,0.11);
+  }
+  .cta-note {
+    font-size: 12px; color: rgba(255,255,255,0.3);
+    margin-bottom: 0; position: relative; z-index: 1;
+  }
+
+  .btn-cta {
+    background: linear-gradient(135deg, var(--amber-light), var(--amber-mid));
+    color: var(--navy); border: none;
+    padding: 16px 28px; border-radius: 8px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 15px;
+    cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 32px rgba(240,184,74,0.4);
+    text-decoration: none; white-space: nowrap;
+    overflow: hidden; position: relative;
+  }
+  .btn-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(240,184,74,0.5); }
+
+  /* ─── RIPPLE ─── */
+  .ripple {
+    position: absolute; border-radius: 50%;
+    background: rgba(255,255,255,0.28);
+    transform: scale(0);
+    animation: rippleAnim 0.6s linear;
+    pointer-events: none;
+  }
+  @keyframes rippleAnim {
+    to { transform: scale(4); opacity: 0; }
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: #141320; padding: 40px 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    color: rgba(255,255,255,0.3); font-size: 13px;
+  }
+  .footer-logo {
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 18px;
+    color: var(--amber-light);
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .reveal {
+    opacity: 0; transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ─── HAMBURGER MENU ─── */
+  .hamburger {
+    display: none; flex-direction: column; gap: 5px;
+    background: none; border: none; cursor: pointer; padding: 4px; z-index: 200;
+  }
+  .hamburger span {
+    display: block; width: 22px; height: 2px;
+    background: var(--navy); border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+  .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .hamburger.open span:nth-child(2) { opacity: 0; }
+  .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  .mobile-menu {
+    display: none; position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--cream); z-index: 150;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 32px;
+  }
+  .mobile-menu.open { display: flex; }
+  .mobile-menu a {
+    font-family: 'Nunito', sans-serif; font-size: 28px; font-weight: 800;
+    color: var(--navy); text-decoration: none;
+    transition: color 0.2s;
+  }
+  .mobile-menu a:hover { color: var(--amber-deep); }
+  .mobile-menu .mobile-cta {
+    background: linear-gradient(135deg, var(--amber-mid), var(--amber-deep));
+    color: white; padding: 16px 40px; border-radius: 10px;
+    font-size: 18px; margin-top: 8px;
+    box-shadow: 0 8px 24px rgba(193,122,26,0.35);
+  }
+
+  /* ─── TABLET (≤1024px) ─── */
+  @media (max-width: 1024px) {
+    nav { padding: 20px 30px; }
+    .nav-links { display: none; }
+    .hamburger { display: flex; }
+
+    .hero { grid-template-columns: 1fr; padding: 120px 30px 80px; gap: 40px; }
+    .hero-visual { display: none; }
+    .hero-headline { letter-spacing: -1px; }
+
+    .section { padding: 80px 30px; }
+    .problem-section { padding: 80px 30px; }
+    .problem-grid { grid-template-columns: 1fr 1fr; gap: 2px; }
+
+    .steps-section { padding: 80px 30px; }
+    .steps-container { grid-template-columns: 1fr 1fr; gap: 32px; }
+    .steps-container::before { display: none; }
+
+    .competitive-section { padding: 80px 30px; }
+    .ct-header, .ct-row { grid-template-columns: 140px 1fr 1fr; }
+    .ct-header-cell:nth-child(4), .ct-cell:nth-child(4) { display: none; }
+
+    .cta-section { padding: 80px 30px; }
+    footer { padding: 30px; flex-direction: column; gap: 12px; text-align: center; }
+  }
+
+  /* ─── MOBILE (≤640px) ─── */
+  @media (max-width: 640px) {
+    nav { padding: 16px 20px; }
+    .nav-cta { display: none; }
+
+    .hero {
+      padding: 100px 20px 60px;
+      min-height: auto;
+    }
+    .hero-badge { font-size: 11px; padding: 5px 12px; }
+    .hero-headline { font-size: 36px; letter-spacing: -1px; }
+    .hero-sub { font-size: 15px; }
+    .hero-actions { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .btn-primary { width: 100%; text-align: center; padding: 15px 24px; }
+    .hero-stats { gap: 20px; flex-wrap: wrap; }
+
+    .problem-section { padding: 60px 20px; }
+    .problem-grid { grid-template-columns: 1fr; gap: 2px; }
+    .problem-num { font-size: 36px; }
+
+    .steps-section { padding: 60px 20px; }
+    .steps-container { grid-template-columns: 1fr; gap: 24px; }
+    .step { text-align: left; display: flex; align-items: flex-start; gap: 16px; padding: 0; }
+    .step-circle { width: 48px; height: 48px; font-size: 15px; flex-shrink: 0; margin: 0; }
+    .step-content { flex: 1; }
+    .step-name { text-align: left; }
+    .step-desc { text-align: left; }
+
+    .competitive-section { padding: 60px 20px; }
+    .comparison-table { border-radius: 12px; overflow-x: auto; }
+    .ct-header, .ct-row { grid-template-columns: 130px 1fr 1fr; min-width: 360px; }
+    .ct-header-cell:nth-child(4), .ct-cell:nth-child(4) { display: none; }
+    .ct-header { padding: 14px 16px; }
+    .ct-row { padding: 14px 16px; }
+    .ct-feature { font-size: 12px; }
+    .ct-cell { font-size: 12px; }
+
+    .cta-section { padding: 60px 20px; }
+    .cta-title { font-size: 32px; letter-spacing: -1px; }
+    .cta-body { font-size: 15px; }
+    .cta-form { flex-direction: column; }
+    .btn-cta { width: 100%; text-align: center; }
+
+    .section { padding: 60px 20px; }
+    .section-title { letter-spacing: -0.5px; }
+
+    footer { padding: 24px 20px; font-size: 12px; }
+
+    .cursor-glow { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SCROLL PROGRESS -->
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- CURSOR GLOW -->
+<div class="cursor-glow" id="cursorGlow"></div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">🎉</span>
+  You're on the list! We'll be in touch soon.
+</div>
+
+<!-- MOBILE MENU OVERLAY -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#problem" onclick="closeMobileMenu()">The Problem</a>
+  <a href="#how" onclick="closeMobileMenu()">How It Works</a>
+  <a href="#compare" onclick="closeMobileMenu()">Compare</a>
+  <a href="#cta" class="mobile-cta" onclick="closeMobileMenu()">Get Early Access</a>
+</div>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <div class="nav-logo">Squad<span>Up</span></div>
+  <ul class="nav-links">
+    <li><a href="#problem">The Problem</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#compare">Compare</a></li>
+  </ul>
+  <a href="#cta" class="nav-cta">Get Early Access</a>
+  <button class="hamburger" id="hamburger" aria-label="Toggle menu" onclick="toggleMobileMenu()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">AI Recruitment Intelligence · Built for Student Clubs</div>
+    <h1 class="hero-headline">
+      Stop guessing.<br>
+      Start picking <em>the right</em><br>
+      members.
+    </h1>
+    <p class="hero-sub">
+      SquadUp replaces gut-feel Google Forms with structured behavioral profiling and AI-powered culture-fit scoring — so your club gets committed members, not just applicants.
+    </p>
+    <div class="hero-actions">
+      <a href="#cta" class="btn-primary ripple-btn">Request Early Access</a>
+      <a href="#how" class="btn-ghost">
+        See how it works
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M1 7h12M8 3l5 4-5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num"><span class="counter" data-target="42" data-suffix="%+">0%+</span></div>
+        <div class="stat-label">avg. retention lift</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <div class="stat-num"><span class="counter" data-target="87" data-suffix="">0</span><span class="stat-suffix">%</span></div>
+        <div class="stat-label">avg. culture-fit score</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <div class="stat-num">&lt;<span class="counter" data-target="5" data-suffix="min">0min</span></div>
+        <div class="stat-label">to review each applicant</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="card-floating card-float-1">
+      <div class="float-label">Avg. Fit Score</div>
+      <div class="float-value">87%</div>
+      <div class="float-sub">↑ 34% vs last cycle</div>
+    </div>
+
+    <div class="hero-visual-inner" id="tiltCard">
+      <div class="card-main">
+        <div class="card-header">
+          <div class="card-avatar">RC</div>
+          <div>
+            <div class="card-club-name">Raffles Consulting Club</div>
+            <div class="card-role">Spring Intake 2025 · 12 applicants</div>
+          </div>
+          <div class="card-badge">Active</div>
+        </div>
+
+        <div class="applicant-row">
+          <div class="applicant-icon" style="background:#FDE9B8; color:#C17A1A;">AK</div>
+          <div class="applicant-info">
+            <div class="applicant-name">Aisha K.</div>
+            <div class="applicant-tags">
+              <span class="tag tag-commitment">High Commitment</span>
+              <span class="tag tag-culture">Culture Match</span>
+            </div>
+          </div>
+          <div class="score-bar">
+            <div class="score-value">94</div>
+            <div class="score-label">AI Score</div>
+            <div class="fit-meter"><div class="fit-fill" style="width:94%; background:linear-gradient(90deg,#34A853,#1E7A4B);"></div></div>
+          </div>
+        </div>
+
+        <div class="applicant-row">
+          <div class="applicant-icon" style="background:#E8F0FE; color:#1A5FC8;">MJ</div>
+          <div class="applicant-info">
+            <div class="applicant-name">Marcus J.</div>
+            <div class="applicant-tags">
+              <span class="tag tag-commitment">Medium Commitment</span>
+            </div>
+          </div>
+          <div class="score-bar">
+            <div class="score-value">61</div>
+            <div class="score-label">AI Score</div>
+            <div class="fit-meter"><div class="fit-fill" style="width:61%; background:linear-gradient(90deg,#F0B84A,#D4922A);"></div></div>
+          </div>
+        </div>
+
+        <div class="applicant-row">
+          <div class="applicant-icon" style="background:#FCE8F0; color:#C82A6B;">SL</div>
+          <div class="applicant-info">
+            <div class="applicant-name">Sophie L.</div>
+            <div class="applicant-tags">
+              <span class="tag tag-commitment">High Commitment</span>
+              <span class="tag tag-culture">Culture Match</span>
+            </div>
+          </div>
+          <div class="score-bar">
+            <div class="score-value">89</div>
+            <div class="score-label">AI Score</div>
+            <div class="fit-meter"><div class="fit-fill" style="width:89%; background:linear-gradient(90deg,#34A853,#1E7A4B);"></div></div>
+          </div>
+        </div>
+
+        <div class="card-insight">
+          <div class="insight-label">AI Insight</div>
+          <div class="insight-text">
+            <span class="insight-highlight">Aisha & Sophie</span> show strong behavioral alignment with your club's values. Marcus flags a scheduling conflict risk — worth a follow-up conversation.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-floating card-float-2">
+      <div class="float-label">Dropout Risk</div>
+      <div class="float-value" style="color:#1E7A4B;">↓ 42%</div>
+      <div class="float-sub">vs unstructured intake</div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-section">
+  <div class="marquee-track" id="marqueeTrack">
+    <!-- first set -->
+    <div class="marquee-item"><span class="marquee-dot"></span>NUS Consulting Society</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>SMU Finance Club</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>NTU Entrepreneurship Society</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Raffles Debate Club</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>NUS Marketing Guild</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>SIT Tech Innovators</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>SUTD Design Society</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>NUS Hackers Club</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>SMU Business Analytics</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>NTU Psychology Society</div>
+    <!-- duplicate for seamless loop -->
+    <div class="marquee-item"><span class="marquee-dot"></span>NUS Consulting Society</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>SMU Finance Club</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>NTU Entrepreneurship Society</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Raffles Debate Club</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>NUS Marketing Guild</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>SIT Tech Innovators</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>SUTD Design Society</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>NUS Hackers Club</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>SMU Business Analytics</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>NTU Psychology Society</div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section id="problem" class="problem-section">
+  <div style="max-width: 600px; position: relative; z-index: 1;">
+    <div class="section-label reveal">The Problem</div>
+    <h2 class="section-title reveal" style="color:white;">Current recruitment is <br>built on guesswork.</h2>
+  </div>
+  <div class="problem-grid" style="position:relative; z-index:1;">
+    <div class="problem-card reveal">
+      <span class="problem-icon">🎭</span>
+      <div class="problem-num">01</div>
+      <div class="problem-title">Surface-Level Screening</div>
+      <div class="problem-desc">Google Forms and short interviews only capture what applicants want to show — not who they actually are or how committed they'll be.</div>
+    </div>
+    <div class="problem-card reveal">
+      <span class="problem-icon">📉</span>
+      <div class="problem-num">02</div>
+      <div class="problem-title">No Commitment Signal</div>
+      <div class="problem-desc">There's no structured way to evaluate whether someone will actually show up, follow through, and stay engaged semester after semester.</div>
+    </div>
+    <div class="problem-card reveal">
+      <span class="problem-icon">🔍</span>
+      <div class="problem-num">03</div>
+      <div class="problem-title">Culture Fit is Invisible</div>
+      <div class="problem-desc">8 out of 10 club leaders cite culture fit as a core challenge — yet none have a structured way to assess it before accepting members.</div>
+    </div>
+    <div class="problem-card reveal">
+      <span class="problem-icon">💥</span>
+      <div class="problem-num">04</div>
+      <div class="problem-title">Dropout Damages Clubs</div>
+      <div class="problem-desc">Unpredictable retention leads to internal conflict, stressed leadership, inconsistent event quality, and damaged club reputation.</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" class="steps-section">
+  <div class="section-label reveal">How It Works</div>
+  <h2 class="section-title reveal">Five steps to smarter recruitment.</h2>
+
+  <div class="steps-container">
+    <div class="step reveal">
+      <div class="step-circle active">1</div>
+      <div class="step-content">
+        <div class="step-name">Recruit</div>
+        <div class="step-desc">Your club defines culture, values, and commitment expectations upfront.</div>
+      </div>
+    </div>
+    <div class="step reveal">
+      <div class="step-circle active">2</div>
+      <div class="step-content">
+        <div class="step-name">Structure</div>
+        <div class="step-desc">Applicants complete deep behavioral profiling — far beyond a Google Form.</div>
+      </div>
+    </div>
+    <div class="step reveal">
+      <div class="step-circle active">3</div>
+      <div class="step-content">
+        <div class="step-name">AI Insight</div>
+        <div class="step-desc">AI analyzes commitment signals, intent markers, and culture-fit indicators.</div>
+      </div>
+    </div>
+    <div class="step reveal">
+      <div class="step-circle inactive">4</div>
+      <div class="step-content">
+        <div class="step-name">Align</div>
+        <div class="step-desc">Confirm expectations and responsibilities with candidates before acceptance.</div>
+      </div>
+    </div>
+    <div class="step reveal">
+      <div class="step-circle inactive">5</div>
+      <div class="step-content">
+        <div class="step-name">Improve</div>
+        <div class="step-desc">Track retention and satisfaction data to make every recruitment cycle smarter.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPETITIVE -->
+<section id="compare" class="competitive-section">
+  <div class="section-label reveal">Competitive Landscape</div>
+  <h2 class="section-title reveal">Nothing else is built for this.</h2>
+  <p style="margin-top:16px; color:var(--text-mid); font-size:16px; max-width:560px;" class="reveal">
+    Existing tools are either built for HR departments, career platforms, or general chat. SquadUp is the first to focus entirely on student club culture and commitment.
+  </p>
+
+  <div class="comparison-table reveal">
+    <div class="ct-header">
+      <div class="ct-header-cell">Feature</div>
+      <div class="ct-header-cell highlight">SquadUp</div>
+      <div class="ct-header-cell">Google Forms</div>
+      <div class="ct-header-cell">Discord / Slack</div>
+    </div>
+    <div class="ct-row">
+      <div class="ct-feature">AI Culture-Fit Screening</div>
+      <div class="ct-cell positive"><span class="dot green"></span>Core Focus</div>
+      <div class="ct-cell negative"><span class="dot red"></span>None</div>
+      <div class="ct-cell negative"><span class="dot red"></span>None</div>
+    </div>
+    <div class="ct-row">
+      <div class="ct-feature">Commitment Verification</div>
+      <div class="ct-cell positive"><span class="dot green"></span>Structured</div>
+      <div class="ct-cell negative"><span class="dot red"></span>None</div>
+      <div class="ct-cell negative"><span class="dot red"></span>None</div>
+    </div>
+    <div class="ct-row">
+      <div class="ct-feature">Club Customization</div>
+      <div class="ct-cell positive"><span class="dot green"></span>Very High</div>
+      <div class="ct-cell"><span class="dot grey"></span>High</div>
+      <div class="ct-cell"><span class="dot grey"></span>Medium</div>
+    </div>
+    <div class="ct-row">
+      <div class="ct-feature">Retention Tracking</div>
+      <div class="ct-cell positive"><span class="dot green"></span>Built-in</div>
+      <div class="ct-cell negative"><span class="dot red"></span>None</div>
+      <div class="ct-cell negative"><span class="dot red"></span>None</div>
+    </div>
+    <div class="ct-row">
+      <div class="ct-feature">Pricing</div>
+      <div class="ct-cell positive"><span class="dot green"></span>Accessible</div>
+      <div class="ct-cell positive"><span class="dot green"></span>Free</div>
+      <div class="ct-cell"><span class="dot grey"></span>Free / Paid</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta" class="cta-section">
+  <div class="cta-eyebrow">Early Access · Limited Spots</div>
+  <h2 class="cta-title">Your next intake<br>deserves better than <span>a Google Form.</span></h2>
+  <p class="cta-body">Join the waitlist and be among the first clubs to run AI-assisted recruitment. We're piloting with student clubs in Singapore — starting soon.</p>
+
+  <form class="cta-form" id="ctaForm" onsubmit="handleSubmit(event)">
+    <input
+      type="email"
+      class="cta-input"
+      id="ctaEmail"
+      placeholder="your@email.com"
+      required
+      autocomplete="email"
+    />
+    <button type="submit" class="btn-cta ripple-btn">Join Waitlist</button>
+  </form>
+  <p class="cta-note">No spam. Just a heads-up when we launch. 🤙</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">SquadUp</div>
+  <div>Built for student clubs who take their craft seriously.</div>
+  <div>© 2025 SquadUp</div>
+</footer>
+
+<script>
+  /* ─── MOBILE MENU ─── */
+  function toggleMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    const btn = document.getElementById('hamburger');
+    menu.classList.toggle('open');
+    btn.classList.toggle('open');
+    document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
+  }
+  function closeMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    const btn = document.getElementById('hamburger');
+    menu.classList.remove('open');
+    btn.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  /* ─── SCROLL PROGRESS ─── */
+  const progressBar = document.getElementById('scrollProgress');
+  const mainNav = document.getElementById('mainNav');
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    progressBar.style.width = (scrollTop / docHeight * 100) + '%';
+    mainNav.classList.toggle('scrolled', scrollTop > 20);
+  }, { passive: true });
+
+  /* ─── CURSOR GLOW ─── */
+  const cursorGlow = document.getElementById('cursorGlow');
+  let mouseX = 0, mouseY = 0, glowX = 0, glowY = 0;
+  document.addEventListener('mousemove', e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  });
+  function animateCursor() {
+    glowX += (mouseX - glowX) * 0.08;
+    glowY += (mouseY - glowY) * 0.08;
+    cursorGlow.style.left = glowX + 'px';
+    cursorGlow.style.top = glowY + 'px';
+    requestAnimationFrame(animateCursor);
+  }
+  animateCursor();
+
+  /* ─── SCROLL REVEAL ─── */
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const siblings = entry.target.parentElement.querySelectorAll('.reveal');
+        let delay = 0;
+        siblings.forEach((sib, idx) => {
+          if (sib === entry.target) delay = idx * 80;
+        });
+        setTimeout(() => {
+          entry.target.classList.add('visible');
+        }, delay);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  reveals.forEach(el => observer.observe(el));
+
+  /* ─── FIT BAR ANIMATION ─── */
+  const fitFills = document.querySelectorAll('.fit-fill');
+  fitFills.forEach(el => {
+    const finalWidth = el.style.width;
+    el.style.width = '0';
+    setTimeout(() => { el.style.width = finalWidth; }, 400);
+  });
+
+  /* ─── ANIMATED COUNTERS ─── */
+  function animateCounter(el) {
+    const target = parseInt(el.dataset.target, 10);
+    const suffix = el.dataset.suffix || '';
+    const duration = 1400;
+    const start = performance.now();
+    function update(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(eased * target) + suffix;
+      if (progress < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  }
+
+  const counters = document.querySelectorAll('.counter');
+  const counterObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        animateCounter(entry.target);
+        counterObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  counters.forEach(el => counterObserver.observe(el));
+
+  /* ─── HERO CARD 3D TILT ─── */
+  const tiltCard = document.getElementById('tiltCard');
+  const heroVisual = document.querySelector('.hero-visual');
+  if (heroVisual && tiltCard) {
+    heroVisual.addEventListener('mousemove', e => {
+      const rect = heroVisual.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      tiltCard.style.transform = `rotateY(${x * 10}deg) rotateX(${-y * 8}deg)`;
+    });
+    heroVisual.addEventListener('mouseleave', () => {
+      tiltCard.style.transform = 'rotateY(0deg) rotateX(0deg)';
+    });
+  }
+
+  /* ─── RIPPLE EFFECT ─── */
+  document.querySelectorAll('.ripple-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      const rect = this.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const ripple = document.createElement('span');
+      ripple.classList.add('ripple');
+      ripple.style.cssText = `
+        width: ${size}px; height: ${size}px;
+        left: ${e.clientX - rect.left - size / 2}px;
+        top: ${e.clientY - rect.top - size / 2}px;
+      `;
+      this.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 700);
+    });
+  });
+
+  /* ─── WAITLIST FORM ─── */
+  function handleSubmit(e) {
+    e.preventDefault();
+    const email = document.getElementById('ctaEmail').value;
+    if (!email) return;
+
+    const btn = e.target.querySelector('button');
+    btn.textContent = '✓ You\'re in!';
+    btn.style.background = 'linear-gradient(135deg, #34A853, #1E7A4B)';
+    btn.disabled = true;
+    document.getElementById('ctaEmail').disabled = true;
+
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 4000);
+  }
+</script>
+</body>
+</html>
